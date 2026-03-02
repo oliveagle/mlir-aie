@@ -320,122 +320,60 @@ def generate_npu_mem_topology():
 def generate_npu_group_topology():
     """Generate GROUP_TOPOLOGY for NPU2.
 
-    GROUP_TOPOLOGY maps kernel arguments to memory banks.
-    Each group contains one or more memory banks that can be used together.
+    GROUP_TOPOLOGY uses the same format as MEM_TOPOLOGY - simple m_mem_data array.
+    This maps kernel arguments to memory banks.
     """
-    # Group 0: HOST memory (for instructions)
-    # Group 1: SRAM
-    # Groups 2-5: NPU2 local memory banks (bank0 to bank3)
+    # Use same format as MEM_TOPOLOGY
     group_data = [
         {
-            "m_tag_name": "HOST",
-            "m_type": "IP_MEM",
+            "m_type": "MEM_DRAM",
             "m_used": "1",
             "m_sizeKB": "0x10000",
-            "m_addr_width": "0x17",
-            "m_numBanks": "1",
-            "m_bankWidth": "1",
-            "m_bankId": ["0"],
-            "m_row": "0",
-            "m_col": "0",
-            "m_clob": "0",
-            "m_linked": "0",
-            "m_migPortId": "0",
-            "m_portId": "0",
-            "m_baseAddress": "0x4000000",
+            "m_tag": "HOST",
+            "m_base_address": "0x4000000",
         },
         {
-            "m_tag_name": "SRAM",
-            "m_type": "IP_MEM",
+            "m_type": "MEM_DRAM",
             "m_used": "1",
             "m_sizeKB": "0xc000",
-            "m_addr_width": "0x17",
-            "m_numBanks": "1",
-            "m_bankWidth": "1",
-            "m_bankId": ["1"],
-            "m_row": "0",
-            "m_col": "0",
-            "m_clob": "0",
-            "m_linked": "0",
-            "m_migPortId": "0",
-            "m_portId": "0",
-            "m_baseAddress": "0x4000000",
+            "m_tag": "SRAM",
+            "m_base_address": "0x4000000",
         },
-        # NPU2 local memory bank groups
+        # NPU2 local memory banks (bank0 to bank3)
         {
-            "m_tag_name": "bank0",
-            "m_type": "IP_MEM",
-            "m_used": "1",
-            "m_sizeKB": "0x4000",  # 16KB
-            "m_addr_width": "16",
-            "m_numBanks": "1",
-            "m_bankWidth": "1",
-            "m_bankId": ["2"],  # mem_index in mem_topology
-            "m_row": "0",
-            "m_col": "0",
-            "m_clob": "0",
-            "m_linked": "0",
-            "m_migPortId": "0",
-            "m_portId": "0",
-            "m_baseAddress": "0x0",
-        },
-        {
-            "m_tag_name": "bank1",
-            "m_type": "IP_MEM",
+            "m_type": "MEM_DRAM",
             "m_used": "1",
             "m_sizeKB": "0x4000",
-            "m_addr_width": "16",
-            "m_numBanks": "1",
-            "m_bankWidth": "1",
-            "m_bankId": ["3"],
-            "m_row": "0",
-            "m_col": "0",
-            "m_clob": "0",
-            "m_linked": "0",
-            "m_migPortId": "0",
-            "m_portId": "0",
-            "m_baseAddress": "0x4000",
+            "m_tag": "bank0",
+            "m_base_address": "0x0",
         },
         {
-            "m_tag_name": "bank2",
-            "m_type": "IP_MEM",
+            "m_type": "MEM_DRAM",
             "m_used": "1",
             "m_sizeKB": "0x4000",
-            "m_addr_width": "16",
-            "m_numBanks": "1",
-            "m_bankWidth": "1",
-            "m_bankId": ["4"],
-            "m_row": "0",
-            "m_col": "0",
-            "m_clob": "0",
-            "m_linked": "0",
-            "m_migPortId": "0",
-            "m_portId": "0",
-            "m_baseAddress": "0x8000",
+            "m_tag": "bank1",
+            "m_base_address": "0x4000",
         },
         {
-            "m_tag_name": "bank3",
-            "m_type": "IP_MEM",
+            "m_type": "MEM_DRAM",
             "m_used": "1",
             "m_sizeKB": "0x4000",
-            "m_addr_width": "16",
-            "m_numBanks": "1",
-            "m_bankWidth": "1",
-            "m_bankId": ["5"],
-            "m_row": "0",
-            "m_col": "0",
-            "m_clob": "0",
-            "m_linked": "0",
-            "m_migPortId": "0",
-            "m_portId": "0",
-            "m_baseAddress": "0xc000",
+            "m_tag": "bank2",
+            "m_base_address": "0x8000",
+        },
+        {
+            "m_type": "MEM_DRAM",
+            "m_used": "1",
+            "m_sizeKB": "0x4000",
+            "m_tag": "bank3",
+            "m_base_address": "0xc000",
         },
     ]
 
     return {
         "group_topology": {
             "m_count": str(len(group_data)),
-            "m_group_data": group_data,
+            "m_mem_data": group_data,
         }
     }
 
