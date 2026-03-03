@@ -378,6 +378,108 @@ def generate_npu_group_topology():
     }
 
 
+def generate_npu_connectivity(num_buffers=5):
+    """Generate CONNECTIVITY for NPU2.
+
+    CONNECTIVITY maps kernel arguments to memory banks.
+    This is what XRT actually uses for argument connectivity.
+    """
+    connections = []
+
+    # arg_index 0: opcode (SCALAR) -> HOST (mem_data_index=0)
+    connections.append({
+        "arg_index": "0",
+        "m_ip_layout_index": "0",
+        "mem_data_index": "0"  # HOST
+    })
+
+    # arg_index 1: instr (SRAM)
+    connections.append({
+        "arg_index": "1",
+        "m_ip_layout_index": "0",
+        "mem_data_index": "1"  # SRAM
+    })
+
+    # arg_index 2: ninstr (SCALAR) -> HOST
+    connections.append({
+        "arg_index": "2",
+        "m_ip_layout_index": "0",
+        "mem_data_index": "0"  # HOST
+    })
+
+    # arg_index 3+: buffer arguments (bo0, bo1, bo2, bo3, bo4) -> HOST
+    for i in range(num_buffers):
+        connections.append({
+            "arg_index": str(3 + i),
+            "m_ip_layout_index": "0",
+            "mem_data_index": "0"  # HOST
+        })
+
+    return {
+        "connectivity": {
+            "m_count": str(len(connections)),
+            "m_connection": connections
+        }
+    }
+
+
+def generate_npu_group_connectivity(num_buffers=5):
+    """Generate GROUP_CONNECTIVITY for NPU2.
+
+    GROUP_CONNECTIVITY maps kernel arguments to memory banks.
+    This is critical for NPU to properly connect kernel arguments to memory.
+
+    Kernel argument mapping (from emit_design_kernel_json):
+    - arg_index 0: opcode (offset 0x00) -> needs connection to HOST
+    - arg_index 1: instr (offset 0x08, SRAM) -> SRAM
+    - arg_index 2: ninstr (offset 0x10, SCALAR) -> needs connection to HOST
+    - arg_index 3: bo0 (offset 0x18, HOST) -> HOST
+    - arg_index 4: bo1 (offset 0x20, HOST) -> HOST
+    - arg_index 5: bo2 (offset 0x28, HOST) -> HOST
+    - arg_index 6: bo3 (offset 0x30, HOST) -> HOST
+    - arg_index 7: bo4 (offset 0x38, HOST) -> HOST
+
+    Note: Even SCALAR arguments need a valid mem_data_index in XRT.
+    """
+    connections = []
+
+    # arg_index 0: opcode (SCALAR) -> HOST (mem_data_index=0)
+    connections.append({
+        "arg_index": "0",
+        "m_ip_layout_index": "0",
+        "mem_data_index": "0"  # HOST
+    })
+
+    # arg_index 1: instr (SRAM)
+    connections.append({
+        "arg_index": "1",
+        "m_ip_layout_index": "0",
+        "mem_data_index": "1"  # SRAM
+    })
+
+    # arg_index 2: ninstr (SCALAR) -> HOST
+    connections.append({
+        "arg_index": "2",
+        "m_ip_layout_index": "0",
+        "mem_data_index": "0"  # HOST
+    })
+
+    # arg_index 3+: buffer arguments (bo0, bo1, bo2, bo3, bo4) -> HOST
+    for i in range(num_buffers):
+        connections.append({
+            "arg_index": str(3 + i),
+            "m_ip_layout_index": "0",
+            "mem_data_index": "0"  # HOST
+        })
+
+    return {
+        "group_connectivity": {
+            "m_count": str(len(connections)),
+            "m_connection": connections
+        }
+    }
+
+
 # Legacy mem_topology for non-NPU2 devices
 mem_topology = {
     "mem_topology": {
@@ -1468,6 +1570,8 @@ class FlowRunner:
 
         file_mem_topology = self.prepend_tmp(f"{device_name}_mem_topology.json")
         file_group_topology = self.prepend_tmp(f"{device_name}_group_topology.json")
+        file_connectivity = self.prepend_tmp(f"{device_name}_connectivity.json")
+        file_group_connectivity = self.prepend_tmp(f"{device_name}_group_connectivity.json")
         file_partition = self.prepend_tmp(f"{device_name}_aie_partition.json")
         file_input_partition = self.prepend_tmp(
             f"{device_name}_aie_input_partition.json"
@@ -1499,6 +1603,20 @@ class FlowRunner:
             npu_group_topology = generate_npu_group_topology()
             processes.append(
                 write_file_async(json.dumps(npu_group_topology, indent=2), file_group_topology)
+            )
+
+        # Generate CONNECTIVITY.json for NPU2 (fix bank connectivity issue)
+        if is_npu:
+            npu_connectivity = generate_npu_connectivity(num_buffers=5)
+            processes.append(
+                write_file_async(json.dumps(npu_connectivity, indent=2), file_connectivity)
+            )
+
+        # Generate GROUP_CONNECTIVITY.json for NPU2
+        if is_npu:
+            npu_group_connectivity = generate_npu_group_connectivity(num_buffers=5)
+            processes.append(
+                write_file_async(json.dumps(npu_group_connectivity, indent=2), file_group_connectivity)
             )
 
         # generate aie_partition.json
@@ -1572,6 +1690,16 @@ class FlowRunner:
         if is_npu:
             flag.append("--add-replace-section")
             flag.append("GROUP_TOPOLOGY:JSON:" + file_group_topology)
+
+        # Add CONNECTIVITY for NPU devices (fix bank connectivity)
+        if is_npu:
+            flag.append("--add-replace-section")
+            flag.append("CONNECTIVITY:JSON:" + file_connectivity)
+
+        # Add GROUP_CONNECTIVITY for NPU devices
+        if is_npu:
+            flag.append("--add-replace-section")
+            flag.append("GROUP_CONNECTIVITY:JSON:" + file_group_connectivity)
 
         # run xclbinutil to generate the xclbin
         await self.do_call(task, ["xclbinutil"] + flag +
