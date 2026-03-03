@@ -1,5 +1,17 @@
 # Copyright (C) 2022, Advanced Micro Devices, Inc.
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+# Python 3.12 compatibility fix: typing._ClassVar was removed in Python 3.12
+import typing
+if not hasattr(typing, '_ClassVar'):
+    # In Python 3.12+, _ClassVar is removed; use the type of ClassVar as fallback
+    try:
+        from typing import ClassVar
+        typing._ClassVar = type(ClassVar)
+    except (ImportError, AttributeError):
+        # Fallback: create a dummy type
+        typing._ClassVar = type(type("ClassVar", (), {}))
+
 from dataclasses import dataclass
 import inspect
 from typing import List, Tuple, Dict, Any, Union

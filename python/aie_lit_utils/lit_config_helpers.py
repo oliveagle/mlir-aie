@@ -25,6 +25,17 @@ Usage:
     helper.apply_config_to_lit(config, {"rocm": rocm_config})
 """
 
+# Python 3.12 compatibility fix: typing._ClassVar was removed in Python 3.12
+import typing
+if not hasattr(typing, '_ClassVar'):
+    # In Python 3.12+, _ClassVar is removed; use the type of ClassVar as fallback
+    try:
+        from typing import ClassVar
+        typing._ClassVar = type(ClassVar)
+    except (ImportError, AttributeError):
+        # Fallback: create a dummy type
+        typing._ClassVar = type(type("ClassVar", (), {}))
+
 import os
 import re
 import shutil
